@@ -117,10 +117,15 @@ fun MyApp() {
                 ProfileScreen(navController, profile) { navController.navigate("create_profile") }
             }
             composable("create_profile") {
-                CreateProfileScreen(navController, profile) { newProfile ->
-                    profile = newProfile
-                    navController.popBackStack()
-                }
+                val profile = /* obtén el perfil actual si quieres editar */
+                    CreateProfileScreen(
+                        navController = navController,
+                        currentProfile = profile,           // pasa el perfil actual
+                        onSave = { newProfile ->
+                            profile = newProfile            // actualizas el estado
+                            navController.popBackStack()
+                        }
+                    )
             }
             composable("create_post") {
                 CreatePostScreen(navController, profile?.username ?: "Anónimo") { newPost ->
@@ -609,11 +614,8 @@ fun ProfileScreen(navController: NavController, profile: Profile?, onCreateProfi
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Button(
-                    onClick = onCreateProfile,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("Editar Perfil")
+                Button(onClick = { navController.navigate("create_profile") }) {
+                    Text(if (profile == null) "Crear Perfil" else "Editar Perfil")
                 }
             }
         }
@@ -623,69 +625,61 @@ fun ProfileScreen(navController: NavController, profile: Profile?, onCreateProfi
 // ---------- PANTALLA CREAR PERFIL ----------
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-fun CreateProfileScreen(navController: NavController, profile: Profile?, onSave: (Profile) -> Unit) {
-    var username by remember { mutableStateOf("") }
-    var name by remember { mutableStateOf("") }
-    var lastName by remember { mutableStateOf("") }
-    var selectedInterests by remember { mutableStateOf(setOf<String>()) }
-    var age by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var photoUri by remember { mutableStateOf<Uri?>(null) }
+fun CreateProfileScreen(
+    navController: NavController,
+    currentProfile: Profile?,           // perfil existente (para editar)
+    onSave: (Profile) -> Unit
+) {
+    var username by remember { mutableStateOf(currentProfile?.username ?: "") }
+    var name by remember { mutableStateOf(currentProfile?.name ?: "") }
+    var lastName by remember { mutableStateOf(currentProfile?.lastName ?: "") }
+    var age by remember { mutableStateOf(currentProfile?.age ?: "") }
+    var email by remember { mutableStateOf(currentProfile?.email ?: "") }
+    var photoUri by remember { mutableStateOf<Uri?>(currentProfile?.photoUri) }
+    var selectedInterests by remember {
+        mutableStateOf(currentProfile?.interests?.toSet() ?: emptySet())
+    }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        photoUri = uri
-    }
-
-    // Pre-fill fields if profile is not null
-    LaunchedEffect(profile) {
-        if (profile != null) {
-            username = profile.username
-            name = profile.name
-            lastName = profile.lastName
-            selectedInterests = profile.interests.toSet()
-            age = profile.age
-            email = profile.email
-            photoUri = profile.photoUri
-        }
-    }
+    ) { uri -> photoUri = uri }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(24.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.Start
+        verticalArrangement = Arrangement.Top
     ) {
         Text(
-            text = "Crear Perfil - UAM MentorLink",
+            text = if (currentProfile == null) "Crear Perfil" else "Editar Perfil",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.primary
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Foto
         if (photoUri != null) {
             Image(
                 painter = rememberAsyncImagePainter(photoUri),
-                contentDescription = "Foto seleccionada",
-                modifier = Modifier.size(120.dp).clip(CircleShape).align(Alignment.CenterHorizontally),
+                contentDescription = "Foto de perfil",
+                modifier = Modifier
+                    .size(120.dp)
+                    .clip(CircleShape)
+                    .align(Alignment.CenterHorizontally),
                 contentScale = ContentScale.Crop
             )
         } else {
             Icon(
                 Icons.Rounded.Person,
-                contentDescription = "Foto de perfil",
+                contentDescription = null,
                 modifier = Modifier
                     .size(120.dp)
                     .align(Alignment.CenterHorizontally),
                 tint = MaterialTheme.colorScheme.primary
             )
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
             onClick = { launcher.launch("image/*") },
@@ -696,128 +690,32 @@ fun CreateProfileScreen(navController: NavController, profile: Profile?, onSave:
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        OutlinedTextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Nombre de Usuario") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-        )
+        // Campos de texto (mantén los OutlinedTextField que ya tenías)
+        OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Nombre de Usuario") }, modifier = Modifier.fillMaxWidth())
+        // ... agrega los demás campos (name, lastName, age, email) igual que antes
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Nombre") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = lastName,
-            onValueChange = { lastName = it },
-            label = { Text("Apellidos") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = age,
-            onValueChange = { age = it },
-            label = { Text("Edad") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
         Text("Intereses:", style = MaterialTheme.typography.titleMedium)
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Académico
-        Text("Académico:", style = MaterialTheme.typography.bodyLarge)
-        FlowRow(modifier = Modifier.fillMaxWidth()) {
-            academicInterests.forEach { interest ->
-                FilterChip(
-                    selected = interest in selectedInterests,
-                    onClick = {
-                        selectedInterests = if (interest in selectedInterests) {
-                            selectedInterests - interest
-                        } else {
-                            selectedInterests + interest
-                        }
-                    },
-                    label = { Text(interest) },
-                    modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Hobbies
-        Text("Hobbies:", style = MaterialTheme.typography.bodyLarge)
-        FlowRow(modifier = Modifier.fillMaxWidth()) {
-            hobbyInterests.forEach { interest ->
-                FilterChip(
-                    selected = interest in selectedInterests,
-                    onClick = {
-                        selectedInterests = if (interest in selectedInterests) {
-                            selectedInterests - interest
-                        } else {
-                            selectedInterests + interest
-                        }
-                    },
-                    label = { Text(interest) },
-                    modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Social
-        Text("Social:", style = MaterialTheme.typography.bodyLarge)
-        FlowRow(modifier = Modifier.fillMaxWidth()) {
-            socialInterests.forEach { interest ->
-                FilterChip(
-                    selected = interest in selectedInterests,
-                    onClick = {
-                        selectedInterests = if (interest in selectedInterests) {
-                            selectedInterests - interest
-                        } else {
-                            selectedInterests + interest
-                        }
-                    },
-                    label = { Text(interest) },
-                    modifier = Modifier.padding(end = 8.dp, bottom = 8.dp)
-                )
-            }
-        }
+        // Aquí mantén tus FlowRow con los FilterChip de academicInterests, hobbyInterests y socialInterests
 
         Spacer(modifier = Modifier.height(32.dp))
 
         Button(
             onClick = {
                 if (username.isNotBlank() && name.isNotBlank()) {
-                    val profile = Profile(username, name, lastName, selectedInterests.toList(), age, email, photoUri)
-                    onSave(profile)
+                    val newProfile = Profile(
+                        username = username,
+                        name = name,
+                        lastName = lastName,
+                        interests = selectedInterests.toList(),
+                        age = age,
+                        email = email,
+                        photoUri = photoUri
+                    )
+                    onSave(newProfile)
+                } else {
+                    // Opcional: mostrar un Toast o Snackbar de error
                 }
             },
             modifier = Modifier.fillMaxWidth()
