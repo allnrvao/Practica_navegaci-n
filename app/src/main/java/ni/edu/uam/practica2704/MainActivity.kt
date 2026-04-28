@@ -49,15 +49,6 @@ val CoralOrange = Color(0xFFFF7F50)
 val PalePink = Color(0xFFDFB6B2)
 
 // ---------- DATA CLASSES ----------
-data class Profile(
-    val username: String,
-    val name: String,
-    val lastName: String,
-    val interests: List<String>,
-    val age: String,
-    val email: String,
-    val photoUri: Uri?
-)
 
 data class Post(
     val title: String,

@@ -5,6 +5,13 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.lifecycle.viewmodel.compose.viewModel
+import ni.edu.uam.practica2704.screens.LoginScreen
+import ni.edu.uam.practica2704.screens.HomeScreen
+import ni.edu.uam.practica2704.screens.CreateProfileScreen
+import ni.edu.uam.practica2704.screens.ProfileScreen
+import ni.edu.uam.practica2704.screens.SettingsScreen
+import ni.edu.uam.practica2704.screens.MessagesScreen
+
 
 @Composable
 fun NavGraph(navController: NavHostController) {
